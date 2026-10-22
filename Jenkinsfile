@@ -1,4 +1,4 @@
-
+```groovy
 pipeline {
     agent any
 
@@ -11,7 +11,7 @@ pipeline {
     }
 
     environment {
-        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env.PATH}"
         IMAGE_NAME = 'dineshh007/food-waste-portal'
         DEPLOYMENT = 'food-portal'
         CONTAINER_NAME = 'food-portal'
@@ -49,7 +49,7 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-creds',
+                        credentialsId: 'dockerhub',
                         usernameVariable: 'DH_USER',
                         passwordVariable: 'DH_TOKEN'
                     )
@@ -87,17 +87,17 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "Deploying deliberately invalid image..."
+                    echo "Introducing a deliberately invalid image tag"
 
                     kubectl set image deployment/$DEPLOYMENT \
                         $CONTAINER_NAME=$IMAGE_NAME:bad-tag
 
                     if kubectl rollout status deployment/$DEPLOYMENT \
                         --timeout=45s; then
-                        echo "Faulty release unexpectedly succeeded"
+                        echo "Unexpected: faulty rollout succeeded"
                         exit 1
                     else
-                        echo "Fault detected. Rolling back to stable version."
+                        echo "Fault detected. Rolling back..."
 
                         kubectl rollout undo deployment/$DEPLOYMENT
 
@@ -107,7 +107,7 @@ pipeline {
                         kubectl get deployment $DEPLOYMENT
                         kubectl get pods -l app=food-portal
 
-                        echo "Rollback verified"
+                        echo "Rollback verification complete"
                     fi
                 '''
             }
@@ -126,4 +126,4 @@ pipeline {
         }
     }
 }
-
+```
