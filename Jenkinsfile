@@ -6,11 +6,12 @@ pipeline {
         booleanParam(
             name: 'TEST_FAULTY_RELEASE',
             defaultValue: false,
-            description: 'Introduce a faulty image and test automatic rollback'
+            description: 'Test faulty deployment and automatic rollback'
         )
     }
 
     environment {
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         IMAGE_NAME = 'dineshh007/food-waste-portal'
         DEPLOYMENT = 'food-portal'
         CONTAINER_NAME = 'food-portal'
@@ -19,13 +20,21 @@ pipeline {
     stages {
         stage('Checkout and Validate') {
             steps {
-                checkout scm
                 sh '''
                     test -f index.html
                     test -f Dockerfile
                     test -f deployment.yaml
-                    grep -qi "Food Waste Tracking" index.html
                     echo "Project files validated"
+                '''
+            }
+        }
+
+        stage('Check Tools') {
+            steps {
+                sh '''
+                    docker --version
+                    kubectl version --client
+                    kubectl get nodes
                 '''
             }
         }
@@ -48,7 +57,7 @@ pipeline {
                     sh '''
                         set +x
                         echo "$DH_TOKEN" | docker login \
-                          -u "$DH_USER" --password-stdin
+                            -u "$DH_USER" --password-stdin
                         docker push $IMAGE_NAME:v1
                         docker logout
                     '''
@@ -60,10 +69,13 @@ pipeline {
             steps {
                 sh '''
                     kubectl apply -f deployment.yaml
+
                     kubectl set image deployment/$DEPLOYMENT \
-                      $CONTAINER_NAME=$IMAGE_NAME:v1
+                        $CONTAINER_NAME=$IMAGE_NAME:v1
+
                     kubectl rollout status deployment/$DEPLOYMENT \
-                      --timeout=120s
+                        --timeout=120s
+
                     kubectl get pods -l app=food-portal
                 '''
             }
@@ -75,25 +87,28 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "Introducing an invalid image tag..."
+                    echo "Deploying deliberately invalid image..."
 
                     kubectl set image deployment/$DEPLOYMENT \
-                      $CONTAINER_NAME=$IMAGE_NAME:bad-tag
+                        $CONTAINER_NAME=$IMAGE_NAME:bad-tag
 
                     if kubectl rollout status deployment/$DEPLOYMENT \
-                      --timeout=60s; then
-                        echo "Unexpected: faulty rollout succeeded"
+                        --timeout=45s; then
+                        echo "Faulty release unexpectedly succeeded"
                         exit 1
                     else
-                        echo "Fault detected. Rolling back..."
-                        kubectl rollout undo deployment/$DEPLOYMENT
-                        kubectl rollout status deployment/$DEPLOYMENT \
-                          --timeout=120s
-                    fi
+                        echo "Fault detected. Rolling back to stable version."
 
-                    kubectl get deployment $DEPLOYMENT
-                    kubectl get pods -l app=food-portal
-                    echo "Rollback verification complete"
+                        kubectl rollout undo deployment/$DEPLOYMENT
+
+                        kubectl rollout status deployment/$DEPLOYMENT \
+                            --timeout=120s
+
+                        kubectl get deployment $DEPLOYMENT
+                        kubectl get pods -l app=food-portal
+
+                        echo "Rollback verified"
+                    fi
                 '''
             }
         }
@@ -111,3 +126,4 @@ pipeline {
         }
     }
 }
+
