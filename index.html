@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Waste Tracking and Redistribution Portal</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f6f3;
+      color: #20352a;
+    }
+
+    header {
+      background: #176b45;
+      color: white;
+      padding: 25px 5%;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+    }
+
+    header p {
+      margin-bottom: 0;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 25px auto;
+      padding: 0 20px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .stat,
+    .food-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px #00000010;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 28px;
+      margin: 10px 0 5px;
+    }
+
+    .stat small {
+      color: #607066;
+    }
+
+    .foods {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .food-card h3 {
+      margin-top: 0;
+      color: #176b45;
+    }
+
+    .food-card p {
+      line-height: 1.5;
+      margin: 9px 0;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: bold;
+      background: #e2f5e8;
+      color: #176b45;
+    }
+
+    .status.Reserved {
+      background: #fff0c2;
+      color: #805600;
+    }
+
+    .status.Collected {
+      background: #dcecff;
+      color: #174e8c;
+    }
+
+    .status.Redistributed {
+      background: #e9e0ff;
+      color: #6039a5;
+    }
+
+    .summary {
+      background: white;
+      padding: 16px 20px;
+      border-left: 5px solid #176b45;
+      border-radius: 8px;
+      margin: 15px 0 25px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #607066;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 22px 20px;
+      }
+
+      main {
+        padding: 0 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Food Waste Tracking and Redistribution Portal</h1>
+    <p>Connecting surplus food with authorized community organizations.</p>
+  </header>
+
+  <main>
+    <h2>Redistribution Status Dashboard</h2>
+
+    <div class="summary" id="collection-summary">
+      Estimated portions available for collection: 0
+    </div>
+
+    <section class="dashboard" id="dashboard"></section>
+
+    <h2>Surplus Food Records</h2>
+    <p>Track available food, collection deadlines, pickup locations and redistribution.</p>
+
+    <section class="foods" id="foods"></section>
+  </main>
+
+  <footer>
+    University and Community Food Redistribution Initiative
+  </footer>
+
+  <script>
+    const records = [
+      {
+        food: "Vegetable Rice",
+        provider: "University Canteen",
+        quantity: 25,
+        deadline: "Today, 2:00 PM",
+        location: "Canteen Gate A",
+        organization: "Helping Hands",
+        status: "Available"
+      },
+      {
+        food: "Bread and Buns",
+        provider: "Sunrise Bakery",
+        quantity: 40,
+        deadline: "Today, 3:00 PM",
+        location: "Main Entrance",
+        organization: "City Food Bank",
+        status: "Reserved"
+      },
+      {
+        food: "Fresh Fruit Boxes",
+        provider: "Campus Cafe",
+        quantity: 15,
+        deadline: "Today, 4:00 PM",
+        location: "Block C",
+        organization: "Green Community",
+        status: "Collected"
+      },
+      {
+        food: "Packed Lunches",
+        provider: "Green Leaf Restaurant",
+        quantity: 30,
+        deadline: "Today, 1:30 PM",
+        location: "Restaurant Counter",
+        organization: "Helping Hands",
+        status: "Redistributed"
+      },
+      {
+        food: "Vegetable Sandwiches",
+        provider: "University Cafe",
+        quantity: 20,
+        deadline: "Today, 5:00 PM",
+        location: "Library Entrance",
+        organization: "City Food Bank",
+        status: "Available"
+      }
+    ];
+
+    const statuses = [
+      "Available",
+      "Reserved",
+      "Collected",
+      "Redistributed"
+    ];
+
+    // Calculate the estimated quantity still available for collection.
+    const availablePortions = records
+      .filter(record => record.status === "Available")
+      .reduce((total, record) => total + record.quantity, 0);
+
+    document.getElementById("collection-summary").textContent =
+      `Estimated portions available for collection: ${availablePortions}`;
+
+    // Display the number of records and portions for each status.
+    document.getElementById("dashboard").innerHTML =
+      statuses.map(status => {
+        const matchingRecords = records.filter(
+          record => record.status === status
+        );
+
+        const quantity = matchingRecords.reduce(
+          (total, record) => total + record.quantity,
+          0
+        );
+
+        return `
+          <article class="stat">
+            ${status}
+            <strong>${matchingRecords.length}</strong>
+            <small>${quantity} portions</small>
+          </article>
+        `;
+      }).join("");
+
+    // Display all surplus-food records.
+    document.getElementById("foods").innerHTML =
+      records.map(record => `
+        <article class="food-card">
+          <h3>${record.food}</h3>
+
+          <p><b>Contributing organization:</b> ${record.provider}</p>
+          <p><b>Available quantity:</b> ${record.quantity} portions</p>
+          <p><b>Collection deadline:</b> ${record.deadline}</p>
+          <p><b>Pickup location:</b> ${record.location}</p>
+          <p><b>Participating organization:</b> ${record.organization}</p>
+
+          <span class="status ${record.status}">
+            ${record.status}
+          </span>
+        </article>
+      `).join("");
+  </script>
+</body>
+</html>
